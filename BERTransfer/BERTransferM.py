@@ -1,10 +1,11 @@
 class BERTransferM:
-    def __init__(self, ids = None, embeddings=None, topic_embeddings = None, min_cosine_distance = 0.5, max_documents_topics = 15000):
+    def __init__(self, ids = None, embeddings=None, topic_embeddings = None, min_cosine_distance = 0.5, max_documents_topics = 15000, multiple_topics = 1):
         self.ids = ids
         self.topic_embeddings = topic_embeddings
         self.embeddings = embeddings
         self.min_cosine_distance = min_cosine_distance
         self.max_documents_topics = max_documents_topics
+        self.multiple_topics = multiple_topics
         self.document_size = len(self.embeddings)
         self.topic_size = len(self.topic_embeddings)
         self.embedding_transfer()
@@ -37,8 +38,13 @@ class BERTransferM:
 
         df = pd.DataFrame(list(zip(current_topic_list, document_in_topic_list, text_list, cosine_distance_list)), columns =['topic_id', 'document_id', 'url', 'cosine_distance'])
         
-        #We only keep the best topic candidate per document id
-        idx = df.groupby(['document_id'])['cosine_distance'].transform(max) == df['cosine_distance']
+        #I multiple topics is selected we take the best candidates or otherwise only one
+        if self.multiple_topics > 1:
+            idx = df.groupby('document_id')['cosine_distance'].nlargest(self.multiple_topics)
+        else:
+            idx = df.groupby(['document_id'])['cosine_distance'].transform(max) == df['cosine_distance']
+            
+
         df = df[idx]
         self.document_dataset = df
     
